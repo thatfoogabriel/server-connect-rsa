@@ -23,6 +23,12 @@ public class RSA {
         return cipher.doFinal(ciphertext);
     }
 
+    public byte[] decrypt(byte[] ciphertext, PublicKey publicKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.DECRYPT_MODE, publicKey);
+        return cipher.doFinal(ciphertext);
+    }
+
     public PublicKey getPublicKey() {
         return this.keyPair.getPublic();
     }
