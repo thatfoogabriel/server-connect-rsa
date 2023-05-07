@@ -11,11 +11,14 @@ class Server {
             System.out.println(greeting);
             Socket connectionSocket = welcomeSocket.accept();
             BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+            DataInputStream dIn = new DataInputStream(connectionSocket.getInputStream());
             DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
             RSA rsa = new RSA();
             
-            byte[] ciphertextClient = new byte[0];
-            byte[] publicKeyBytes = new byte[0];
+            byte[] ciphertextClient = new byte[dIn.readInt()];
+            dIn.readFully(ciphertextClient);
+            byte[] publicKeyBytes = new byte[dIn.readInt()];
+            dIn.readFully(publicKeyBytes);
             String message = inFromClient.readLine();
             if (message.equals("Quit")) {
                 System.out.println("Shutting down...");
@@ -23,12 +26,29 @@ class Server {
                 break;
             }
             try {
-                ciphertextClient = inFromClient.readLine().getBytes();
-                publicKeyBytes = inFromClient.readLine().getBytes();
+                ByteArrayOutputStream ciphertextStream = new ByteArrayOutputStream();
+                ByteArrayOutputStream publicKeyStream = new ByteArrayOutputStream();
+                int byteRead;
+                while ((byteRead = dIn.read()) != -1) {
+                    ciphertextStream.write(byteRead);
+                    if (dIn.available() == 0) {
+                        break;
+                    }
+                }
+                ciphertextClient = ciphertextStream.toByteArray();
+                
+                while ((byteRead = dIn.read()) != -1) {
+                    publicKeyStream.write(byteRead);
+                    if (dIn.available() == 0) {
+                        break;
+                    }
+                }
+                publicKeyBytes = publicKeyStream.toByteArray();
             }
             catch (IOException e) {
                 System.out.println("Error reading message: " + e.getMessage());
             }
+
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
             PublicKey publicKeyClient = keyFactory.generatePublic(publicKeySpec);

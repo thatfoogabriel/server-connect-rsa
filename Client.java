@@ -11,6 +11,7 @@ class Client {
         Socket clientSocket = new Socket("localhost", 6789);
         DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        DataOutputStream dOut = new DataOutputStream(clientSocket.getOutputStream());
         
         String plain = "";
         while (true) {
@@ -39,9 +40,8 @@ class Client {
         byte[] plaintext = plain.getBytes();
         byte[] ciphertext = rsa.encrypt(plaintext);
         byte[] publicKey = rsa.getPublicKey().getEncoded();
-        outToServer.write(ciphertext);
-        outToServer.write('\n');
-        outToServer.write(publicKey);
+        dOut.write(ciphertext);
+        dOut.write(publicKey);
 
         byte[] ciphertextClient = new byte[0];
         byte[] publicKeyBytes = new byte[0];
@@ -52,6 +52,8 @@ class Client {
         catch (IOException e) {
             System.out.println("Error reading message: " + e.getMessage());
         }
+        System.out.println("Success");
+        
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
         PublicKey publicKeyClient = keyFactory.generatePublic(publicKeySpec);
