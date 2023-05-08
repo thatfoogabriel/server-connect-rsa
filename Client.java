@@ -11,9 +11,9 @@ class Client {
         Socket clientSocket = new Socket("localhost", 6789);
         DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        DataOutputStream dOut = new DataOutputStream(clientSocket.getOutputStream());
+        ByteArrayOutputStream bytesToServer = new ByteArrayOutputStream();
         
-        String plain = "";
+        byte[] plaintext;
         while (true) {
             System.out.println("Enter File Name: ");
             String fileName = kb.nextLine();
@@ -25,11 +25,15 @@ class Client {
             }
             try {
                 File file = new File(fileName);
-                BufferedReader reader = new BufferedReader(new FileReader(file));
-                while (reader.readLine() != null) {
-                    plain += reader.readLine() + "\n";
+                FileInputStream reader = new FileInputStream(file);
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int read;
+                while ((read = reader.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
                 }
                 reader.close();
+                plaintext = out.toByteArray();
                 break;
             } 
             catch (IOException e) {
@@ -37,13 +41,18 @@ class Client {
             }
         }
 
-        byte[] plaintext = plain.getBytes();
         byte[] ciphertext = rsa.encrypt(plaintext);
         byte[] publicKey = rsa.getPublicKey().getEncoded();
-        dOut.write(ciphertext);
-        dOut.write(publicKey);
+        bytesToServer.write(ciphertext);
+        for (int i=0; i< ciphertext.length; i++)
+            System.out.print(ciphertext[i]);
+        bytesToServer.write(publicKey);
+        System.out.println();
+        for (int i=0; i< publicKey.length; i++)
+            System.out.print(publicKey[i]);
+        outToServer.write(bytesToServer.toByteArray());
 
-        byte[] ciphertextClient = new byte[0];
+        /*byte[] ciphertextClient = new byte[0];
         byte[] publicKeyBytes = new byte[0];
         try {
             ciphertextClient = inFromServer.readLine().getBytes();
@@ -59,7 +68,7 @@ class Client {
         PublicKey publicKeyClient = keyFactory.generatePublic(publicKeySpec);
 
         byte[] decryptedtext = rsa.decrypt(ciphertextClient, publicKeyClient);
-        System.out.println(new String(decryptedtext));
+        System.out.println(new String(decryptedtext));*/
         
         kb.close();
         clientSocket.close();

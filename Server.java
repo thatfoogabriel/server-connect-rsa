@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.security.*;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
 class Server {
     public static void main (String args[]) throws Exception {
@@ -11,14 +12,12 @@ class Server {
             System.out.println(greeting);
             Socket connectionSocket = welcomeSocket.accept();
             BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            DataInputStream dIn = new DataInputStream(connectionSocket.getInputStream());
             DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
+            DataInputStream bytesFromClient = new DataInputStream(connectionSocket.getInputStream());
             RSA rsa = new RSA();
             
-            byte[] ciphertextClient = new byte[dIn.readInt()];
-            dIn.readFully(ciphertextClient);
-            byte[] publicKeyBytes = new byte[dIn.readInt()];
-            dIn.readFully(publicKeyBytes);
+            byte[] ciphertextClient = new byte[1024];
+            byte[] publicKeyBytes = new byte[1024];
             String message = inFromClient.readLine();
             if (message.equals("Quit")) {
                 System.out.println("Shutting down...");
@@ -26,29 +25,17 @@ class Server {
                 break;
             }
             try {
-                ByteArrayOutputStream ciphertextStream = new ByteArrayOutputStream();
-                ByteArrayOutputStream publicKeyStream = new ByteArrayOutputStream();
-                int byteRead;
-                while ((byteRead = dIn.read()) != -1) {
-                    ciphertextStream.write(byteRead);
-                    if (dIn.available() == 0) {
-                        break;
-                    }
-                }
-                ciphertextClient = ciphertextStream.toByteArray();
-                
-                while ((byteRead = dIn.read()) != -1) {
-                    publicKeyStream.write(byteRead);
-                    if (dIn.available() == 0) {
-                        break;
-                    }
-                }
-                publicKeyBytes = publicKeyStream.toByteArray();
+                int ciphertextSize = bytesFromClient.read(ciphertextClient);
+                int publicKeySize = bytesFromClient.read(publicKeyBytes);
             }
             catch (IOException e) {
                 System.out.println("Error reading message: " + e.getMessage());
             }
-
+            for (int i=0; i< ciphertextClient.length; i++)
+                System.out.print(ciphertextClient[i]);
+            System.out.println();
+            for (int i=0; i< publicKeyBytes.length; i++)
+                System.out.print(publicKeyBytes[i]);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
             PublicKey publicKeyClient = keyFactory.generatePublic(publicKeySpec);
@@ -56,7 +43,7 @@ class Server {
             byte[] decryptedtext = rsa.decrypt(ciphertextClient, publicKeyClient);
             System.out.println("Received message: " + new String(decryptedtext));
 
-            String plain = "";
+            /*String plain = "";
             try {
                 File file = new File("SeverResponse.txt");
                 BufferedReader reader = new BufferedReader(new FileReader(file));
@@ -75,7 +62,7 @@ class Server {
             byte[] publicKey = rsa.getPublicKey().getEncoded();
             outToClient.write(ciphertext);
             outToClient.write('\n');
-            outToClient.write(publicKey);
+            outToClient.write(publicKey);*/
 
             connectionSocket.close();
         }
