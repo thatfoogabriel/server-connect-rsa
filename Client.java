@@ -11,7 +11,7 @@ class Client {
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         RSA rsa = new RSA();
         
-        BigInteger[] plaintextClient;
+        BigInteger[] plaintextClient =null;
         while (true) {
             System.out.println("Enter File Name: ");
             String fileName = kb.nextLine();
