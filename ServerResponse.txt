@@ -1,1 +1,1 @@
-Message successfully recieved
+Message successfully recieved!

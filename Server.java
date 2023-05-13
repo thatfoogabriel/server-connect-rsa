@@ -1,8 +1,6 @@
 import java.io.*;
+import java.math.BigInteger;
 import java.net.*;
-import java.security.*;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
 
 class Server {
     public static void main (String args[]) throws Exception {
@@ -13,56 +11,63 @@ class Server {
             Socket connectionSocket = welcomeSocket.accept();
             BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
             DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
-            DataInputStream bytesFromClient = new DataInputStream(connectionSocket.getInputStream());
             RSA rsa = new RSA();
-            
-            byte[] ciphertextClient = new byte[1024];
-            byte[] publicKeyBytes = new byte[1024];
+
             String message = inFromClient.readLine();
             if (message.equals("Quit")) {
                 System.out.println("Shutting down...");
                 connectionSocket.close();
                 break;
             }
-            try {
-                int ciphertextSize = bytesFromClient.read(ciphertextClient);
-                int publicKeySize = bytesFromClient.read(publicKeyBytes);
-            }
-            catch (IOException e) {
-                System.out.println("Error reading message: " + e.getMessage());
-            }
-            for (int i=0; i< ciphertextClient.length; i++)
-                System.out.print(ciphertextClient[i]);
-            System.out.println();
-            for (int i=0; i< publicKeyBytes.length; i++)
-                System.out.print(publicKeyBytes[i]);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-            PublicKey publicKeyClient = keyFactory.generatePublic(publicKeySpec);
 
-            byte[] decryptedtext = rsa.decrypt(ciphertextClient, publicKeyClient);
-            System.out.println("Received message: " + new String(decryptedtext));
+            String publicKeyString = rsa.getPublicKey();
+            outToClient.writeBytes(publicKeyString + "\n");
 
-            /*String plain = "";
+            String ciphertextClient = inFromClient.readLine();
+            String[] asciiEncrypted = ciphertextClient.split(" ");
+            BigInteger[] ciphertext = new BigInteger[asciiEncrypted.length];
+            for (int i = 0; i < asciiEncrypted.length; i++) {
+                ciphertext[i] = new BigInteger(asciiEncrypted[i]);
+            }
+            BigInteger[] plaintextArray = rsa.decrypt(ciphertext);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < plaintextArray.length; i++) {
+                sb.append((char) plaintextArray[i].intValue());
+            }
+            String plaintextClient = sb.toString().trim();
+            System.out.println("Received message: " + plaintextClient + "\n");
+
+            BigInteger[] plaintextServer = null;
             try {
-                File file = new File("SeverResponse.txt");
+                File file = new File("ServerResponse.txt");
                 BufferedReader reader = new BufferedReader(new FileReader(file));
-                while (reader.readLine() != null) {
-                    plain += reader.readLine() + "\n";
-                }
+                int bufferSize = (int) file.length();
+                char[] plain = new char[bufferSize];
+                reader.read(plain);
                 reader.close();
-                break;
-            } 
+
+                plaintextServer = new BigInteger[plain.length];
+                for (int i = 0; i < plain.length; i++) {
+                    plaintextServer[i] = BigInteger.valueOf((int) plain[i]);
+                }
+            }
             catch (IOException e) {
                 System.out.println("Error reading file: " + e.getMessage());
             }
 
-            byte[] plaintext = plain.getBytes();
-            byte[] ciphertext = rsa.encrypt(plaintext);
-            byte[] publicKey = rsa.getPublicKey().getEncoded();
-            outToClient.write(ciphertext);
-            outToClient.write('\n');
-            outToClient.write(publicKey);*/
+            String publicKeyClient = inFromClient.readLine();
+            String values[] = publicKeyClient.split(" ");
+            BigInteger[] publicKey = {new BigInteger(values[0]), new BigInteger(values[1])};
+            BigInteger[] ciphertextArray = rsa.encrypt(plaintextServer, publicKey);
+            StringBuilder sb2 = new StringBuilder();
+            for (int i = 0; i < ciphertextArray.length; i++) {
+                sb2.append(ciphertextArray[i].toString());
+                sb2.append(" ");
+            }
+            String cipher = sb2.toString().trim();
+            String publicKeyStringServer = rsa.getPublicKey();
+            outToClient.writeBytes(cipher + "\n");
+            outToClient.writeBytes(publicKeyStringServer + "\n");
 
             connectionSocket.close();
         }
