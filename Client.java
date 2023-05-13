@@ -15,13 +15,6 @@ class Client {
         while (true) {
             System.out.println("Enter File Name: ");
             String fileName = kb.nextLine();
-            if (fileName.equals("Quit") || fileName.equals("quit")) {
-                outToServer.writeBytes("Quit" + '\n');
-                kb.close();
-                clientSocket.close();
-                System.exit(0);
-            }
-
             try {
                 File file = new File(fileName);
                 BufferedReader reader = new BufferedReader(new FileReader(file));
@@ -41,7 +34,6 @@ class Client {
             }
         }
 
-        outToServer.writeBytes("Success" + "\n");
         String publicKeyServer = inFromServer.readLine();
         String values[] = publicKeyServer.split(" ");
         BigInteger[] publicKey = {new BigInteger(values[0]), new BigInteger(values[1])};
@@ -56,19 +48,25 @@ class Client {
         outToServer.writeBytes(ciphertext + "\n");
         outToServer.writeBytes(publicKeyString + "\n");
 
-        String ciphertextServer = inFromServer.readLine();
-        String[] asciiEncrypted = ciphertextServer.split(" ");
-        BigInteger[] cipher = new BigInteger[asciiEncrypted.length];
-        for (int i = 0; i < asciiEncrypted.length; i++) {
-            cipher[i] = new BigInteger(asciiEncrypted[i]);
+        String serverMessage = inFromServer.readLine();
+        if (!serverMessage.equals("Quit")){
+            String ciphertextServer = inFromServer.readLine();
+            String[] asciiEncrypted = ciphertextServer.split(" ");
+            BigInteger[] cipher = new BigInteger[asciiEncrypted.length];
+            for (int i = 0; i < asciiEncrypted.length; i++) {
+                cipher[i] = new BigInteger(asciiEncrypted[i]);
+            }
+            BigInteger[] plaintextArray = rsa.decrypt(cipher);
+            StringBuilder sb2 = new StringBuilder();
+            for (int i = 0; i < plaintextArray.length; i++) {
+                sb2.append((char) plaintextArray[i].intValue());
+            }
+            String plaintextServer = sb2.toString().trim();
+            System.out.println("Received message: " + plaintextServer);
         }
-        BigInteger[] plaintextArray = rsa.decrypt(cipher);
-        StringBuilder sb2 = new StringBuilder();
-        for (int i = 0; i < plaintextArray.length; i++) {
-            sb2.append((char) plaintextArray[i].intValue());
+        else {
+            System.out.println("Shutting down Server...");
         }
-        String plaintextServer = sb2.toString().trim();
-        System.out.println("Received message: " + plaintextServer);
 
         kb.close();
         clientSocket.close();

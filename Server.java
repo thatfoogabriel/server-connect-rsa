@@ -13,13 +13,6 @@ class Server {
             DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
             RSA rsa = new RSA();
 
-            String message = inFromClient.readLine();
-            if (message.equals("Quit")) {
-                System.out.println("Shutting down...");
-                connectionSocket.close();
-                break;
-            }
-
             String publicKeyString = rsa.getPublicKey();
             outToClient.writeBytes(publicKeyString + "\n");
 
@@ -35,6 +28,13 @@ class Server {
                 sb.append((char) plaintextArray[i].intValue());
             }
             String plaintextClient = sb.toString().trim();
+            if (plaintextClient.equals("quit") || plaintextClient.equals("Quit")) {
+                outToClient.writeBytes("Quit" + "\n");
+                System.out.println("Shutting down...");
+                connectionSocket.close();
+                break;
+            }
+            outToClient.writeBytes("Success" + "\n");
             System.out.println("Received message: " + plaintextClient + "\n");
 
             BigInteger[] plaintextServer = null;
